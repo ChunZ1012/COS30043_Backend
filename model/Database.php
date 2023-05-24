@@ -39,7 +39,10 @@ class Database
             $stmt = $this->executeStatement($query , $params);
             if($selectOne) 
             {
-                if ($execScalar) $result = $stmt->get_result()->fetch_array()[0];
+                if ($execScalar) {
+                    $es = $stmt->get_result()->fetch_array();
+                    $result = $es == null ? null : $es[0];
+                }
                 else $result = $stmt->get_result()->fetch_assoc();
             }
             else 

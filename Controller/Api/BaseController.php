@@ -40,12 +40,6 @@ class BaseController
     }
     protected function getPostData()
     {
-        // $keys = array_keys($_POST);
-        // $data = [];
-
-        // foreach($keys as $key) $data[$key] = $_POST[$key];
-        // return $data;
-
         try
         {
             return json_decode(file_get_contents('php://input'), true);

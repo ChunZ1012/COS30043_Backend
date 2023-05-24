@@ -42,7 +42,7 @@ class CartModel extends Database
 
         if($payload)
         {
-            if($this->checkVariantAvailQtyAgainstUserQty($payload['productVariantId'], $payload['productVariantQty']))
+            if($this->productModel->checkVariantAvailQtyAgainstUserQty($payload['productVariantId'], $payload['productVariantQty']))
             {
                 $result = $this->update($sql, [
                     'iiii',
