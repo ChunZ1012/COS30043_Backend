@@ -19,8 +19,10 @@ $routes = [
         'routes' => [
             'list',
             'get',
+            'detail',
             'add',
-            'update',
+            'check',
+            'checkout',
             'delete'
         ]
     ],
