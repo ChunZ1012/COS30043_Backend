@@ -1,11 +1,18 @@
 <?php
-require PROJECT_ROOT_PATH . "/Model/CartModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/CartModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/ProductModel.php";
 class CartController extends BaseController 
 {
     private $model;
+    private $userModel;
+    private $token;
     public function __construct()
     {
         $this->model = new CartModel();
+        $this->userModel = new UserModel();
+
+        $this->token = $this->getRequestToken();
     }
     public function listAction()
     {
@@ -13,12 +20,18 @@ class CartController extends BaseController
         $strErrorHeader = '';
         $requestMethod = $_SERVER["REQUEST_METHOD"];
 
-        if ($requestMethod === 'GET') {
+        if ($requestMethod === 'POST') {
             try {
-                $intLimit = $this->getSpecificQueryStringParam('limit') ?? 10;
-                // TODO: Read $_SESSION object to retrieve user id
-                $carts = $this->model->getCarts(1, $intLimit);
-                $responseData = json_encode($carts);
+                if($this->userModel->isUserLoggedIn($this->token))
+                {
+                    $intLimit = $this->getSpecificQueryStringParam('limit') ?? 10;
+                    $carts = $this->model->getCarts($this->userModel->getUserIdFromToken($this->token), $intLimit);
+                    $responseData = json_encode($carts);
+                }
+                else throw new InvalidArgumentException("Please login before continue!");
+            } catch(InvalidArgumentException $e) {
+                $strErrorDesc = $e->getMessage();
+                $strErrorHeader = 'HTTP/1.1 422 Unprocessable Entity';
             } catch (Error $e) {
                 $strErrorDesc = 'Something went wrong!';
                 $strErrorHeader = 'HTTP/1.1 500 Internal Server Error';
@@ -35,16 +48,20 @@ class CartController extends BaseController
         $strErrorHeader = '';
         $requestMethod = $_SERVER["REQUEST_METHOD"];
 
-        if (strtoupper($requestMethod) == 'GET') {
+        if (strtoupper($requestMethod) == 'POST') {
             try {
-                $payload = [
-                    'productVariantId' => $this->getSpecificQueryStringParam('variant_id') ?? -1,
-                    'productVariantQty' => $this->getSpecificQueryStringParam('variant_qty') ?? -1
-                ];
-                if($payload['productVariantId'] == -1 || $payload['productVariantQty'] == -1) throw new InvalidArgumentException('The variant id and variant qty value must be valid!');
-                // TODO: Read $_SESSION object to retrieve user id
-                $carts = $this->model->addToCart($payload);
-                $responseData = json_encode($carts);
+                if($this->userModel->isUserLoggedIn($this->token))
+                {
+                    $payload = [
+                        'productVariantId' => $this->getSpecificQueryStringParam('variant_id') ?? -1,
+                        'productVariantQty' => $this->getSpecificQueryStringParam('variant_qty') ?? -1
+                    ];
+                    if($payload['productVariantId'] == -1 || $payload['productVariantQty'] == -1) throw new InvalidArgumentException('The variant id and variant qty value must be valid!');
+                    // TODO: Read $_SESSION object to retrieve user id
+                    $carts = $this->model->addToCart($payload);
+                    $responseData = json_encode($carts);   
+                }
+                else throw new InvalidArgumentException("Please login before continue!");
             } catch(InvalidArgumentException $e) {
                 $strErrorDesc = $e->getMessage();
                 $strErrorHeader = 'HTTP/1.1 500 Internal Server Error';
@@ -66,15 +83,18 @@ class CartController extends BaseController
 
         if (strtoupper($requestMethod) == 'PATCH') {
             try {
-                $payload = [
-                    'cartId' => $this->getSpecificQueryStringParam('cart_id') ?? -1,
-                    'productVariantId' => $this->getSpecificQueryStringParam('variant_id') ?? -1,
-                    'productVariantQty' => $this->getSpecificQueryStringParam('variant_qty') ?? -1
-                ];
-                if($payload['cartId'] == -1 || $payload['productVariantId'] == -1 || $payload['productVariantQty'] == -1) throw new InvalidArgumentException('The cart id, variant id or variant qty value must be valid!');
-                // TODO: Read $_SESSION object to retrieve user id
-                $carts = $this->model->editCart($payload);
-                $responseData = json_encode($carts);
+                if($this->userModel->isUserLoggedIn($this->token))
+                {
+                    $payload = [
+                        'cartId' => $this->getSpecificQueryStringParam('cart_id') ?? -1,
+                        'productVariantId' => $this->getSpecificQueryStringParam('variant_id') ?? -1,
+                        'productVariantQty' => $this->getSpecificQueryStringParam('variant_qty') ?? -1
+                    ];
+                    if($payload['cartId'] == -1 || $payload['productVariantId'] == -1 || $payload['productVariantQty'] == -1) throw new InvalidArgumentException('The cart id, variant id or variant qty value must be valid!');
+                    $carts = $this->model->editCart($payload);
+                    $responseData = json_encode($carts);
+                }
+                else throw new InvalidArgumentException("Please login before continue!");
             } catch(InvalidArgumentException $e) {
                 $strErrorDesc = $e->getMessage();
                 $strErrorHeader = 'HTTP/1.1 500 Internal Server Error';
@@ -97,13 +117,16 @@ class CartController extends BaseController
 
         if (strtoupper($requestMethod) == "DELETE") {
             try {
-                $payload = [
-                    'cartId' => $this->getSpecificQueryStringParam('cart_id') ?? -1
-                ];
-                if($payload['cartId'] == -1) throw new InvalidArgumentException('The cart id, variant id or variant qty value must be valid!');
-                // TODO: Read $_SESSION object to retrieve user id
-                $carts = $this->model->removeFromCart($payload);
-                $responseData = json_encode($carts);
+                if($this->userModel->isUserLoggedIn($this->token))
+                {
+                    $payload = [
+                        'cartId' => $this->getSpecificQueryStringParam('cart_id') ?? -1
+                    ];
+                    if($payload['cartId'] == -1) throw new InvalidArgumentException('The cart id, variant id or variant qty value must be valid!');
+                    $carts = $this->model->removeFromCart($payload);
+                    $responseData = json_encode($carts);
+                }
+                else throw new InvalidArgumentException("Please login before continue!");
             } catch(InvalidArgumentException $e) {
                 $strErrorDesc = $e->getMessage();
                 $strErrorHeader = 'HTTP/1.1 500 Internal Server Error';

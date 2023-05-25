@@ -1,4 +1,5 @@
 <?php
+require_once PROJECT_ROOT_PATH . '/inc/Session.php';
 class BaseController
 {
     /** 
@@ -38,6 +39,14 @@ class BaseController
         }
         return null;
     }
+    protected function getFormData()
+    {
+        $keys = array_keys($_POST);
+        $data = [];
+
+        foreach($keys as $key) $data[$key] = $_POST[$key];
+        return $data;
+    }
     protected function getPostData()
     {
         try
@@ -48,6 +57,17 @@ class BaseController
         {
             return '';
         }
+    }
+    protected function getRequestToken()
+    {
+        if(isset($_SERVER['HTTP_AUTHORIZATION']))
+        {
+            if (!preg_match('/Bearer\s(\S+)/', $_SERVER['HTTP_AUTHORIZATION'], $matches)) {
+                return '';
+            }
+            else return $matches[1];
+        }
+        else return '';
     }
     protected function handleOutput($data, $errorDesc, $errorHeader)
     {
@@ -74,8 +94,8 @@ class BaseController
         header_remove('Set-Cookie');
 
         header('Access-Control-Allow-Origin: http://localhost:8080');
-        header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE');
+        header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
         
         if (is_array($httpHeaders) && count($httpHeaders)) {
             foreach ($httpHeaders as $httpHeader) {
@@ -86,7 +106,6 @@ class BaseController
         if($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
             header('HTTP/1.1 200 OK');
         }
-        
         echo $data;
         exit;
     }

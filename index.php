@@ -27,9 +27,11 @@
         header("HTTP/1.1 404 Not Found");
         exit();
     }
-    
     $controllerMethodInfo = $route['routes'];
-    $methodName = $uri[4] . "Action";
+    if(isset($controllerMethodInfo[$uri[4]])) $methodName = $controllerMethodInfo[$uri[4]];
+    else $methodName = $uri[4];
+    $methodName .= "Action";
+
     $objController->{$methodName}();
 /*
     if ((isset($uri[2]) && $uri[2] != 'user') || !isset($uri[3])) {

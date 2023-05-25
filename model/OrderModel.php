@@ -10,14 +10,13 @@ class OrderModel extends Database
         $this->productModel = new ProductModel();
         $this->cartModel = new CartModel();
     }
-    public function getOrders($limit)
+    public function getOrders($userId, $limit)
     {
         $headerSql = "SELECT o.order_id AS id, o.order_guid AS orderId, o.order_created_at AS orderCreatedAt, o.order_delivery_name AS orderDeliveryName, o.order_delivery_address AS orderDeliveryAddress, o.order_delivery_address_2 AS orderDeliveryAddress2, o.order_delivery_contact AS orderDeliveryContact, o.order_delivery_email AS orderDeliveryEmail, SUM(d.order_price * d.order_qty) AS orderTotalAmount, SUM(d.order_discount_amt * d.order_qty) AS orderTotalDiscount, o.order_status AS orderStatus FROM orders o INNER JOIN orders_detail d ON o.order_id = d.order_id WHERE o.user_id = ? GROUP BY o.order_id LIMIT ?";
 
         $orders = $this->select($headerSql, [
             "ii",
-            // TODO: Get user id from session
-            1, 
+            $userId,
             $limit
         ]);
 
@@ -130,6 +129,15 @@ class OrderModel extends Database
 
         return $r;
     }
+    public function cancelOrder($orderGuid, $reason)
+    {
+        $sql = "UPDATE orders SET order_is_cancelled = 1, order_cancelled_reason = ? WHERE order_guid = ?";
+        return $this->update($sql, [
+            'ss',
+            $reason,
+            $orderGuid
+        ]);
+    }
     public function deleteOrder($orderGuid)
     {
         $orderSql = "DELETE FROM orders WHERE order_guid = ? AND order_status = 1";
@@ -151,7 +159,7 @@ class OrderModel extends Database
 
         return $result;
     }
-    public function checkIfOrderInPending($orderGuid)
+    public function checkIfOrderInPending($orderGuid) : bool
     {
         $sql = "SELECT order_status = 1 AS IsPending FROM orders WHERE order_guid = ?;";
         return $this->execScalar($sql, [

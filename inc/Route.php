@@ -1,6 +1,16 @@
 <?php
 
 $routes = [
+    'auth' => [
+        'class' => 'Auth',
+        'routes' => [
+            'login',
+            'register',
+            'auth',
+            'change-password' => 'changePassword',
+            'logout'
+        ]
+    ],
     'product_category' => [
         'class' => 'ProductCategory',
         'routes' => [
@@ -21,6 +31,7 @@ $routes = [
             'get',
             'detail',
             'add',
+            'cancel',
             'check',
             'checkout',
             'delete'
