@@ -108,7 +108,40 @@ class AuthController extends BaseController
 
         if ($requestMethod === 'POST') {
             try {
-                $postData = $this->getFormData();
+                $token = $this->getRequestToken();
+                if($this->model->isUserLoggedIn($token))
+                {
+                    $postData = $this->getPostData();
+                    if(isset($postData['accountNewPassword']))
+                    {
+                        $responseData = $this->model->changePassword($this->model->getUserIdFromToken($token), $postData['accountNewPassword']);
+                    }
+                    else throw new InvalidArgumentException('Please fill in the new password!');
+                }
+                else throw new InvalidArgumentException("Please login before continue!");
+            } catch(InvalidArgumentException $e) {
+                $strErrorDesc = $e->getMessage();
+                $strErrorHeader = 'HTTP/1.1 422 Unprocessable Entity';
+            } catch (Error $e) {
+                // $strErrorDesc = 'Something went wrong!';
+                $strErrorDesc = $e->getMessage();
+                $strErrorHeader = 'HTTP/1.1 500 Internal Server Error';
+            }
+        } else {
+            $strErrorDesc = 'Method not supported';
+            $strErrorHeader = 'HTTP/1.1 422 Unprocessable Entity';
+        }
+        $this->handleOutput($responseData ?? '', $strErrorDesc, $strErrorHeader);
+    }
+    public function resetPasswordAction()
+    {
+        $strErrorDesc = '';
+        $strErrorHeader = '';
+        $requestMethod = $_SERVER["REQUEST_METHOD"];
+
+        if ($requestMethod === 'POST') {
+            try {
+                $postData = $this->getPostData();
                 if(isset($postData['email']) && isset($postData['password']))
                 {
                     $r = $this->model->checkIfUserEmailExist($postData['email']);
@@ -116,7 +149,7 @@ class AuthController extends BaseController
                     if(!isset($r) || $r != 1) throw new InvalidArgumentException('This email has not yet register!');
                     else 
                     {
-                        $r = $this->model->changePassword($postData['email'], $postData['password']);
+                        $r = $this->model->resetPassword($postData['email'], $postData['password']);
                         
                         if($r < 1) throw new Error();
                         else $responseData = json_encode(['error' => false]);
@@ -150,6 +183,29 @@ class AuthController extends BaseController
                 session_destroy();
 
                 $responseData = json_encode(['error' => false]);
+            } catch(InvalidArgumentException $e) {
+                $strErrorDesc = $e->getMessage();
+                $strErrorHeader = 'HTTP/1.1 422 Unprocessable Entity';
+            } catch (Error $e) {
+                // $strErrorDesc = 'Something went wrong!';
+                $strErrorDesc = $e->getMessage();
+                $strErrorHeader = 'HTTP/1.1 500 Internal Server Error';
+            }
+        } else {
+            $strErrorDesc = 'Method not supported';
+            $strErrorHeader = 'HTTP/1.1 422 Unprocessable Entity';
+        }
+        $this->handleOutput($responseData ?? '', $strErrorDesc, $strErrorHeader);
+    }
+    public function authAction()
+    {
+        $strErrorDesc = '';
+        $strErrorHeader = '';
+        $requestMethod = $_SERVER["REQUEST_METHOD"];
+
+        if ($requestMethod === 'POST') {
+            try {
+                $responseData = $this->model->isUserLoggedIn($this->getRequestToken()) ? 1 : 0;
             } catch(InvalidArgumentException $e) {
                 $strErrorDesc = $e->getMessage();
                 $strErrorHeader = 'HTTP/1.1 422 Unprocessable Entity';

@@ -40,7 +40,7 @@ class ProductController extends BaseController
 
         if (strtoupper($requestMethod) == 'GET') {
             try {
-                $productId = isset($arrQueryStringParams['id']) && $arrQueryStringParams['id'] ? $arrQueryStringParams['id'] : -1;
+                $productId = $this->getSpecificQueryStringParam('id') ?? -1;
 
                 if(!$this->model->checkIfProductExist($productId)) throw new InvalidArgumentException("The product is not exist!");
 

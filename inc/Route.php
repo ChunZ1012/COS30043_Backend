@@ -1,6 +1,16 @@
 <?php
 
 $routes = [
+    'account' => [
+        'class' => 'User',
+        'routes' => [
+            'get',
+            'list-delivery' => 'listDelivery',
+            'upload-delivery' => 'uploadDelivery',
+            'delete-delivery' => 'deleteDelivery',
+            'update-profile' => 'updateProfile'
+        ]
+    ],
     'auth' => [
         'class' => 'Auth',
         'routes' => [

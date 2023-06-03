@@ -8,8 +8,6 @@ class ProductModel extends Database
     }
     public function getProducts($limit, $withDesc)
     {
-        $query = "SELECT v.variant_id AS variantId, t.variant_type_text AS variantType, v.variant_value AS variantTypeValue, v.variant_price AS variantPrice, v.variant_discount AS variantDiscount, v.variant_discount_amt AS variantDiscountAmt FROM (SELECT * FROM product_variants GROUP BY product_id) AS v INNER JOIN product_variants_type t ON v.variant_type = t.variant_type_id LIMIT ?;";
-
         $productQuery = "SELECT p.product_id AS productId, p.product_name AS productTitle, p.product_type AS productType, p.product_catg AS productCatg, IFNULL(AVG(user_rating), 0) AS productOverallRating";
 
         if(filter_var($withDesc, FILTER_VALIDATE_BOOLEAN)) $productQuery .= ", p.product_desc AS productDesc";
@@ -38,23 +36,6 @@ class ProductModel extends Database
 
         if($productInfo == null || !isset($productInfo['productId'])) throw new InvalidArgumentException("The product is not exist!");
 
-        // $variantQuery = "SELECT v.variant_id AS variantId, t.variant_type_text AS variantType, v.variant_value AS variantTypeValue, v.variant_price AS variantPrice, v.variant_discount AS variantDiscount, v.variant_discount_amt AS variantDiscountAmt FROM product_variants v INNER JOIN product_variants_type t ON v.variant_type = t.variant_type_id WHERE v.product_id = ?";
-
-        // $variantQuery = "SELECT v.variant_id as productVariantId, v.variant_image_urls AS productImageUrl, v.variant_value AS productVariantValue, v.variant_avail_qty AS productVariantAvailQty, v.variant_price AS productVariantPrice, v.variant_discount AS productVariantDist, v.variant_discount_amt AS productVariantDistAmt FROM product_variants v INNER JOIN product_variants_type t ON v.variant_type = t.variant_type_id WHERE v.product_id = ? AND v.variant_type = ? ORDER BY v.id ASC";
-
-        // $variants = [];
-        // foreach($variantTypes as $variantType)
-        // {
-        //     $variantsData = $this->select($variantQuery, 
-        //         ["ii", $productId, $variantType['variant_type']]
-        //     );
-        //     array_push($variants, [
-        //         "variantType" => $variantType["variant_type_text"],
-        //         "variantInfo" => $variantsData
-        //     ]);
-        // }
-        // $productInfo["productVariants"] = $variants;
-
         $variantTypeQuery = "SELECT DISTINCT p.variant_type as variantType, t.variant_type_text AS variantTypeText FROM product_variants p INNER JOIN product_variants_type t ON p.variant_type = t.variant_type_id WHERE product_id = ?;";
 
         $productInfo["productVariants"] = $this->select($variantTypeQuery, [
@@ -68,6 +49,14 @@ class ProductModel extends Database
             'i',
             $productId
         ]);
+
+        for($i = 0; $i < count($variants); $i++)
+        {
+            $variantImageUrls = explode(",", $variants[$i]['productImageUrl']);
+            for($x = 0; $x < count($variantImageUrls); $x++) $variantImageUrls[$x] = PUBLIC_ASSETS_IMAGE_PATH.$variantImageUrls[$x];
+
+            $variants[$i]['productImageUrl'] = implode(",", $variantImageUrls);
+        }
 
         $productInfo['productVariantsInfo'] = $variants; 
         $reviewSql = "SELECT user_display_name AS userDisplayName, user_rating AS userRating, user_comment AS userComment, user_comment_time AS userCommentTime FROM `product_reviews` WHERE product_id = ?;";

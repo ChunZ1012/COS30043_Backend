@@ -127,7 +127,7 @@ class OrderController extends BaseController
                     {
                         $products = $orderData["data"];
                         // passing product data to model
-                        $orderGuid = $this->model->addOrder($products, true);
+                        $orderGuid = $this->model->addOrder($this->userModel->getUserIdFromToken($this->token), $products, true);
                         // set error prop to false, and return order guid if there is no exception thrown by model
                         $result['error'] = false;
                         $result['orderGuid'] = $orderGuid;
@@ -137,7 +137,7 @@ class OrderController extends BaseController
                     {
                         // print_r($orderData);
                         // add order data
-                        $orderGuid = $this->model->addOrder($orderData, false);
+                        $orderGuid = $this->model->addOrder($this->userModel->getUserIdFromToken($this->token), $orderData['data'], false);
                         // set error prop to false, and return order guid if there is no exception thrown by model
                         $result['error'] = false;
                         $result['orderGuid'] = $orderGuid;
@@ -207,11 +207,11 @@ class OrderController extends BaseController
                 // Only if user is logged in
                 if($this->userModel->isUserLoggedIn($this->token))
                 {
-                    $orderGuid = $this->getSpecificQueryStringParam('id');
+                    $orderGuid = $this->getSpecificQueryStringParam('id') ?? -1;
                     // If the order guid is null then throw
-                    if($orderGuid == null) throw new InvalidArgumentException('The selected order is not exist!');
+                    if($orderGuid == -1) throw new InvalidArgumentException('The selected order is not exist!');
                     // If the order is not in pending status then throw
-                    if(!$this->model->checkIfOrderInPending($orderGuid)) throw new InvalidArgumentException('The selected order is no longer exist!');
+                    if(!$this->model->isOrderExist($orderGuid) || !$this->model->checkIfOrderInPending($orderGuid)) throw new InvalidArgumentException('The selected order is no longer exist!');
                     $order = $this->model->getOrderByGuid($orderGuid);
                     $responseData = json_encode($order);
                 }
@@ -237,7 +237,7 @@ class OrderController extends BaseController
         $requestMethod = $_SERVER["REQUEST_METHOD"];
         $formKeys = [
             'orderDeliveryName',
-            'orderDeliveryAddress',
+            'orderDeliveryAddress1',
             'orderDeliveryAddress2',
             'orderDeliveryContact',
             'orderDeliveryEmail'
@@ -256,7 +256,7 @@ class OrderController extends BaseController
                     $orderGuid = $this->getSpecificQueryStringParam('id');
                     if($orderGuid == null) throw new InvalidArgumentException('Invalid request! Missing id field');
                     // checkout
-                    $r = $this->model->checkout($orderGuid, $postData);
+                    $r = $this->model->checkout($orderGuid, $this->userModel->getUserIdFromToken($this->token), $postData);
 
                     if(!$r) throw new Error();
                     else $responseData = true;

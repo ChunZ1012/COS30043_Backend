@@ -40,7 +40,7 @@ class CartController extends BaseController
             $strErrorDesc = 'Method not supported';
             $strErrorHeader = 'HTTP/1.1 422 Unprocessable Entity';
         }
-        $this->handleOutput($responseData, $strErrorDesc, $strErrorHeader);
+        $this->handleOutput($responseData ?? '', $strErrorDesc, $strErrorHeader);
     }
     public function addAction()
     {
@@ -57,8 +57,8 @@ class CartController extends BaseController
                         'productVariantQty' => $this->getSpecificQueryStringParam('variant_qty') ?? -1
                     ];
                     if($payload['productVariantId'] == -1 || $payload['productVariantQty'] == -1) throw new InvalidArgumentException('The variant id and variant qty value must be valid!');
-                    // TODO: Read $_SESSION object to retrieve user id
-                    $carts = $this->model->addToCart($payload);
+
+                    $carts = $this->model->addToCart($this->userModel->getUserIdFromToken($this->token), $payload);
                     $responseData = json_encode($carts);   
                 }
                 else throw new InvalidArgumentException("Please login before continue!");
@@ -91,7 +91,7 @@ class CartController extends BaseController
                         'productVariantQty' => $this->getSpecificQueryStringParam('variant_qty') ?? -1
                     ];
                     if($payload['cartId'] == -1 || $payload['productVariantId'] == -1 || $payload['productVariantQty'] == -1) throw new InvalidArgumentException('The cart id, variant id or variant qty value must be valid!');
-                    $carts = $this->model->editCart($payload);
+                    $carts = $this->model->editCart($this->userModel->getUserIdFromToken($this->token), $payload);
                     $responseData = json_encode($carts);
                 }
                 else throw new InvalidArgumentException("Please login before continue!");
@@ -123,7 +123,8 @@ class CartController extends BaseController
                         'cartId' => $this->getSpecificQueryStringParam('cart_id') ?? -1
                     ];
                     if($payload['cartId'] == -1) throw new InvalidArgumentException('The cart id, variant id or variant qty value must be valid!');
-                    $carts = $this->model->removeFromCart($payload);
+
+                    $carts = $this->model->removeFromCart($this->userModel->getUserIdFromToken($this->token), $payload);
                     $responseData = json_encode($carts);
                 }
                 else throw new InvalidArgumentException("Please login before continue!");

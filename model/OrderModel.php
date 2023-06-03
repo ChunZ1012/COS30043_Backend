@@ -12,7 +12,7 @@ class OrderModel extends Database
     }
     public function getOrders($userId, $limit)
     {
-        $headerSql = "SELECT o.order_id AS id, o.order_guid AS orderId, o.order_created_at AS orderCreatedAt, o.order_delivery_name AS orderDeliveryName, o.order_delivery_address AS orderDeliveryAddress, o.order_delivery_address_2 AS orderDeliveryAddress2, o.order_delivery_contact AS orderDeliveryContact, o.order_delivery_email AS orderDeliveryEmail, SUM(d.order_price * d.order_qty) AS orderTotalAmount, SUM(d.order_discount_amt * d.order_qty) AS orderTotalDiscount, o.order_status AS orderStatus FROM orders o INNER JOIN orders_detail d ON o.order_id = d.order_id WHERE o.user_id = ? GROUP BY o.order_id LIMIT ?";
+        $headerSql = "SELECT o.order_id AS id, o.order_guid AS orderId, o.order_created_at AS orderCreatedAt, o.order_delivery_name AS orderDeliveryName, o.order_delivery_address AS orderDeliveryAddress, o.order_delivery_address_2 AS orderDeliveryAddress2, o.order_delivery_contact AS orderDeliveryContact, o.order_delivery_email AS orderDeliveryEmail, SUM(d.order_price * d.order_qty) AS orderTotalAmount, SUM(d.order_discount_amt * d.order_qty) AS orderTotalDiscount, o.order_status AS orderStatus FROM orders o INNER JOIN orders_detail d ON o.order_id = d.order_id WHERE o.user_id = ? GROUP BY o.order_id ORDER BY order_created_at DESC LIMIT ?";
 
         $orders = $this->select($headerSql, [
             "ii",
@@ -33,7 +33,7 @@ class OrderModel extends Database
     public function getOrderByGuid($orderGuid)
     {
         $headerSql = "SELECT o.order_id AS id, o.order_guid AS orderId, o.order_created_at AS orderCreatedAt, o.order_delivery_name AS orderDeliveryName, o.order_delivery_address AS orderDeliveryAddress, o.order_delivery_address_2 AS orderDeliveryAddress2, o.order_delivery_contact AS orderDeliveryContact, o.order_delivery_email AS orderDeliveryEmail, SUM(d.order_price * d.order_qty) AS orderTotalAmount, SUM(d.order_discount_amt * d.order_qty) AS orderTotalDiscount, o.order_status AS orderStatus FROM orders o INNER JOIN orders_detail d ON o.order_id = d.order_id WHERE o.order_guid = ? LIMIT 1;";
-        $order = $this->selectFirstRow($headerSql, ["i", $orderGuid]);
+        $order = $this->selectFirstRow($headerSql, ["s", $orderGuid]);
 
         if($order == null || !isset($order['id'])) throw new InvalidArgumentException("The selected order is no longer exist!");
 
@@ -59,9 +59,9 @@ class OrderModel extends Database
         ]);
     }
 
-    public function addOrder($payload, $fromCart)
+    public function addOrder($user_id, $payload, $fromCart)
     {
-        $orderId = $this->insertOrder();
+        $orderId = $this->insertOrder($user_id);
         // throw error if the order id is null/ the order is not inserted into db
         if(is_null($orderId)) throw new Error("Error when creating the order!");
         // if the order is created from cart
@@ -69,8 +69,7 @@ class OrderModel extends Database
         {
             foreach($payload as $p)
             {
-                // TODO: Get user id from session
-                $isCartExist = $this->cartModel->checkIfCartExist($p['cartId'], 1);
+                $isCartExist = $this->cartModel->checkIfCartExist($p['cartId'], $user_id);
                 if(!$isCartExist) throw new InvalidArgumentException("The selected cart is no longer exist!");
                 $variantId = $p['variantId'];
                 $this->checkIfVariantExistOrThrow($variantId);
@@ -85,28 +84,27 @@ class OrderModel extends Database
             $variantId = $payload['variantId'];
             $this->checkIfVariantExistOrThrow($variantId);
             $this->checkIfOrderQtyValidOrThrow($variantId, $payload['variantOrderedQty']);
-
+            // save order detail to db
             $this->insertOrderDetail($orderId, $payload);
         }
 
         return $this->getOrderGuid($orderId);
     }
-    public function checkout($orderGuid, $payload)
+    public function checkout($orderGuid, $user_id, $payload)
     {
-        $orderSql = "UPDATE orders SET order_delivery_name = ?, order_delivery_address = ?, order_delivery_address_2 = ?, order_delivery_contact = ?, order_delivery_email = ?, order_status = 2 WHERE order_guid = ? AND user_id = ?;";        
+        $orderSql = "UPDATE orders SET order_delivery_name = ?, order_delivery_address = ?, order_delivery_address_2 = ?, order_delivery_contact = ?, order_delivery_email = ?, order_status = 1 WHERE order_guid = ? AND user_id = ?;";        
         // throw if there is no order exist
         if(!$this->isOrderExist($orderGuid)) throw new InvalidArgumentException('The selected order is not exist!');
 
         $r = $this->update($orderSql, [
             'ssssssi',
             $payload['orderDeliveryName'],
-            $payload['orderDeliveryAddress'],
+            $payload['orderDeliveryAddress1'],
             $payload['orderDeliveryAddress2'],
             $payload['orderDeliveryContact'],
             $payload['orderDeliveryEmail'],
             $orderGuid,
-            // TODO: Get user id from session
-            1
+            $user_id
         ]);
 
         $productQtySql = "UPDATE product_variants SET variant_avail_qty = variant_avail_qty - ? WHERE variant_id = ?";
@@ -161,7 +159,7 @@ class OrderModel extends Database
     }
     public function checkIfOrderInPending($orderGuid) : bool
     {
-        $sql = "SELECT order_status = 1 AS IsPending FROM orders WHERE order_guid = ?;";
+        $sql = "SELECT order_status = 0 AS IsPending FROM orders WHERE order_guid = ?;";
         return $this->execScalar($sql, [
             's',
             $orderGuid
@@ -177,16 +175,16 @@ class OrderModel extends Database
     {
         if(!$this->productModel->checkVariantAvailQtyAgainstUserQty($variantId, $qty)) throw new InvalidArgumentException('The ordered qty is either more than available qty or less than 1!');
     }
-    private function insertOrder()
+    private function insertOrder($user_id)
     {
         $orderSql = "INSERT INTO orders (user_id, order_delivery_name, order_delivery_address, order_delivery_contact, order_delivery_email) VALUES(?, ?, ?, ?, ?);";
         $orderIdSql = "SELECT order_id FROM orders WHERE id = ?";
 
          // Insert order into the database
-        // TODO: Get user id from session
         $insertedId = $this->insert($orderSql, [
             'issss',
-            1, '', '', '', ''
+            $user_id, 
+            '', '', '', ''
         ]);
         // get the inserted order guid
         $orderId = $this->execScalar($orderIdSql, [

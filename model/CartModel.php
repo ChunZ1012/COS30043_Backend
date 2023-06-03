@@ -14,7 +14,7 @@ class CartModel extends Database
 
         return $this->select($sql, ['ii', $userId, $limit]);
     }
-    public function addToCart($payload)
+    public function addToCart($user_id, $payload)
     {
         $sql = "INSERT INTO carts (user_id, product_variant_id, product_variant_qty) VALUES (?, ?, ?);";
 
@@ -24,8 +24,7 @@ class CartModel extends Database
             {
                 $result = $this->insert($sql, [
                     'iii',
-                    // TODO: Get user id from session data,
-                    1,
+                    $user_id,
                     $payload['productVariantId'],
                     $payload['productVariantQty']
                 ]);
@@ -36,7 +35,7 @@ class CartModel extends Database
         }
         else throw new InvalidArgumentException("Empty payload is not supported!");
     }
-    public function editCart($payload)
+    public function editCart($user_id, $payload)
     {
         $sql = "UPDATE carts SET product_variant_qty = ? WHERE cart_id = ? AND product_variant_id = ? AND user_id = ?;";
 
@@ -49,8 +48,7 @@ class CartModel extends Database
                     $payload['productVariantQty'],
                     $payload['cartId'],
                     $payload['productVariantId'],
-                    // TODO: Get user id from session data,
-                    1,
+                    $user_id
                 ]);
 
                 return $result > 0;
@@ -59,7 +57,7 @@ class CartModel extends Database
         }
         else throw new InvalidArgumentException("Empty payload is not supported!");
     }
-    public function removeFromCart($payload)
+    public function removeFromCart($user_id, $payload)
     {
         $sql = "DELETE FROM carts WHERE cart_id = ? AND user_id = ?;";
 
@@ -68,8 +66,7 @@ class CartModel extends Database
             $result = $this->delete($sql, [
                 'ii',
                 $payload['cartId'],
-                // TODO: Get user id from session data,
-                1,
+                $user_id
             ]);
             return $result > 0;
         }
