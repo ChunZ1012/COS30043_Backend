@@ -61,10 +61,10 @@ class AuthController extends BaseController
 
         if ($requestMethod === 'POST') {
             try {
-                $postData = $this->getFormData();
-                if(isset($postData['email']) && isset($postData['password']))
+                $postData = $this->getPostData();
+                if(isset($postData['userEmail']) && isset($postData['userPassword']))
                 {
-                    $r = $this->model->checkIfUserEmailExist($postData['email']);
+                    $r = $this->model->checkIfUserEmailExist($postData['userEmail']);
 
                     if(isset($r) && $r == 1) throw new InvalidArgumentException('This email has been registered! Please login instead');
                     else
@@ -73,11 +73,11 @@ class AuthController extends BaseController
                         if($isRegInfoValid) 
                         {
                             $r = $this->model->register(
-                                $postData['email'],
-                                $postData['password'],
-                                $postData['displayName'],
-                                $postData['contact'],
-                                $postData['age'],
+                                $postData['userEmail'],
+                                $postData['userPassword'],
+                                $postData['userDisplayName'],
+                                $postData['userContact'],
+                                $postData['userAge'],
                             );
 
                             if($r < 1) throw new Error();
@@ -223,11 +223,11 @@ class AuthController extends BaseController
     protected function checkRegistrationData($data) 
     {
         $required_fields = [
-            'email' => "Email",
-            'password' => "Password",
-            'age' => "Age",
-            'displayName' => "Display Name",
-            'contact' => "Contact"
+            'userEmail' => "Email",
+            'userPassword' => "Password",
+            'userAge' => "Age",
+            'userDisplayName' => "Display Name",
+            'userContact' => "Contact"
         ];
 
         foreach($required_fields as $k => $val)
