@@ -8,6 +8,7 @@ $baseAddress = "http://".$_SERVER['HTTP_HOST']."/";
 
 define("PUBLIC_ASSETS_IMAGE_PATH", $baseAddress.$subRootFolder."/public/assets/img/");
 define("PUBLIC_ASSETS_AVATAR_PATH", $baseAddress.$subRootFolder."/public/assets/avatars/");
+define("PUBLIC_ASSETS_BANNER_PATH", $baseAddress.$subRootFolder."/public/assets/banners/");
 
 define("ASSETS_AVATAR_PATH", PROJECT_ROOT_PATH.'/public/assets/avatars/');
 

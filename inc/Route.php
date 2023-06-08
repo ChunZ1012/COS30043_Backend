@@ -55,5 +55,11 @@ $routes = [
             'edit',
             'delete'
         ]
-    ]    
+    ],
+    'banners' => [
+        'class' => 'Banner',
+        'routes' => [
+            'list'
+        ]
+    ]
 ];
